@@ -15,7 +15,8 @@ set.seed(123)
 localRelease <- function(x, values=c(-1,1), epsilon){
 	draw <- runif(n=1, min=0, max=1)
 	cutoff <- 1/(1+exp(epsilon))
-	return(1)    # Correct This
+	return_val <- ifelse(draw < cutoff, !values %in% x, x)
+	return(return_val) 
 }
 
 
@@ -36,8 +37,8 @@ llik <- function(b, data, epsilon){
 	pfalse <- 1 - ptrue  # Or 1/(1-exp(epsilon))
 
 	# Here's the log likelihood function as a row by row calculation
-	llik <- 1           # Correct This
-	llik <- -1 * sum(llik)    			# Note optim performs minimization
+	llik <- z*log(p*ptrue + (1-p)*pfalse) + (1-z)*log((1-p)*ptrue + p*pfalse)
+	llik <- -1 * sum(llik)  			# Note optim performs minimization
 	
 	return(llik)
 }
@@ -413,6 +414,7 @@ showHist <- function(release, main="Histogram"){
 
 
 ## Differentially private histogram for integers
+# updated for local model
 integerHistogramRelease <- function(x, lower, upper, nbins=0, epsilon){
 	n <- length(x)
 	if(nbins==0){
@@ -424,13 +426,13 @@ integerHistogramRelease <- function(x, lower, upper, nbins=0, epsilon){
 
     x.clipped <- clip(x=x, lower=lower, upper=upper)
 
-	sensitivity <- 2
-	scale <- sensitivity / epsilon
+	# sensitivity <- 2
+	# scale <- sensitivity / epsilon
 
 	sensitiveValue <- DPrelease <- rep(NA,nbins)
 	for(i in 1:length(bins)){
 		sensitiveValue[i] <- sum(x.clipped==bins[i])
-		DPrelease[i] <- sensitiveValue[i] + rlap(mu=0, b=scale, size=1)
+		DPrelease[i] <- localRelease(sensitiveValue[i], values=c(0,1), epsilon = epsilon/2)
 	}
 
 	return(list(release=DPrelease, true=sensitiveValue, codebook=bins))
@@ -442,10 +444,10 @@ data1 <- bootstrap(data, n=nboot)
 out1 <- integerHistogramRelease(x=data1, lower=1, upper=16, epsilon=0.5)
 
 
-#out1 <- rep(NA, nboot)
-#for(i in 1:nboot)){
-#	out1[i] <- integerHistogramRelease(x=data1[i], lower=1, upper=16, epsilon=0.5)
-#}
+out1 <- rep(NA, nboot)
+for(i in 1:nboot){
+  out1[i] <- integerHistogramRelease(x=data1[i], lower=1, upper=16, epsilon=0.5)
+}
 
 
 par(mfcol=c(1,1))
