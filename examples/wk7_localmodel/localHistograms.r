@@ -182,7 +182,7 @@ showHistLocal <- function(DPrelease, true, codebook, main="Histogram"){
 
 
 values <- apply(out1,2,mean)
-DPmeans <- correction01(values, epsilon=0.5)
+DPmeans <- correction01(values, epsilon=0.5, sensitivity=2)
 true <- truefrac(data1, lower=1, upper=16)
 
 par(mfcol=c(1,1))
@@ -254,13 +254,13 @@ showHistLocal(DPrelease=DPmeans, true=true, codebook=0:27, main="Histogram of Lo
 #### Show Client-SFP for string discovery ####
 
 clientSFP <- function(x, epsilon, myhash){
-	a <- 1 # Correct this
-	l <- 1 # Correct this
-	b <- substr(x,start=l,stop=l)
+	a <- localHistogramRelease(x=myhash(x), lower=0, upper=26, epsilon=epsilon)$release
+	l <- ceiling(runif(1, min=0, max=10))
+	b <- substr(x, start=l, stop=l) #this is not DP
 	return(list(a=a, b=b, l=l))
 }
 
-x<- bootstrap(iris$Species, n=10000)
+x <- bootstrap(iris$Species, n=10000)
 l <- rep(1,length(x))
 b <- rep("a",length(x))
 out4 <- matrix(NA, nrow=length(x), ncol=27)
@@ -268,7 +268,7 @@ myepsilon <- 2
 
 
 for(i in 1:length(x)){
-	release <- clientSFP(x[i], epsilon=myepsilon, myhash=thash)
+	release <- clientSFP(x[i], epsilon=myepsilon, myhash=thash2)
 	out4[i,] <- release$a
 	b[i] <- release$b
 	l[i] <- release$l
@@ -277,10 +277,10 @@ for(i in 1:length(x)){
 
 # Show identified hash
 
-codebook<- 0:26
+codebook <- 0:26
 values <- apply(out4,2,mean)
-DPmeans <- correction01(values, epsilon=myepsilon)
-true <- truefrac(thash(x), lower=0, upper=26)
+DPmeans <- correction01(values, epsilon=myepsilon, sensitivity=2)
+true <- truefrac(thash2(x), lower=0, upper=26)
 
 showHistLocal(DPrelease=DPmeans, true=true, codebook=0:27, main="Histogram of Local Model Release of Name Hash")
 dev.copy2pdf(file="./figs/localHashHist.pdf")
